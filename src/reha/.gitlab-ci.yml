@@ -1,0 +1,53 @@
+image: python:3.9.7 # defaults to latest
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  QT_DEBUG_PLUGINS: 1
+  QT_QPA_PLATFORM: offscreen
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script:
+  - python -V  # Print out python version for debugging
+  - apt-get install -y gcc automake docker
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - python -m pip install --upgrade pip
+  - pip install flake8 pytest
+  - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  - pip install .[test]
+
+test:
+  stage: test
+  script:
+    - pytest tests
+    - pip install flake8 pytest
+    - pwd
+    - flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+    - flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  artifacts:
+    paths:
+      - flake-report
+    when: on_failure
+#
+#
+#tox:
+#  stage: Test
+#  script:
+#    - pip install tox
+#    # an alternative approach is to install and run:
+#    - xvfb-run tox
+#    # run the command here
+#  coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
+#  artifacts:
+#    paths:
+#      - dist/*.whl
+#    reports:
+#      cobertura: coverage.xml
+#    expire_in: 1 week
+#
+#
