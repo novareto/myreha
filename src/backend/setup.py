@@ -2,14 +2,9 @@ from setuptools import setup
 
 
 setup(
-    name='reha',
+    name='backend',
     install_requires=[
-    'pymongo',
-    'orjson',
-    'horseman',
-    'knappe',
-    'knappe_deform',
-    'pydantic[email]',
+        'reha',
     ],
     extras_require={
         'test': [

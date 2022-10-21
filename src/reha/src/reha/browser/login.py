@@ -2,7 +2,7 @@ import colander
 import deform
 from knappe.response import Response
 from knappe_deform import FormPage, trigger
-from . import views
+from . import router
 
 
 class LoginSchema(colander.Schema):
@@ -18,16 +18,17 @@ class LoginSchema(colander.Schema):
         description="Your password")
 
 
-@views.register('/login')
+@router.register('/login')
 class Login(FormPage):
 
-    schema = LoginSchema
+    def get_schema(self, request):
+        return LoginSchema().bind(request=request)
 
-    @trigger('cancel', title="Cancel")
+    @trigger('cancel', title="Cancel", order=2)
     def cancel(self, request):
         return Response.redirect('/')
 
-    @trigger('process', title="Process")
+    @trigger('process', title="Process", order=1)
     def process_credentials(self, request):
         try:
             form = self.get_form(request)
@@ -36,7 +37,7 @@ class Login(FormPage):
             user = auth.from_credentials(request, appstruct)
             if user is not None:
                 auth.remember(request, user)
-                return Response.redirect("/")
+                return Response.redirect(request.script_name)
 
             return {
                 "error": "Login failed.",

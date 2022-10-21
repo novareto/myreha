@@ -1,9 +1,11 @@
 import enum
 import secrets
 import typing as t
-from pydantic import BaseModel, Field, SecretStr, EmailStr
-from datetime import datetime, date
-from . import ObjectId
+from datetime import date
+from pymongo import IndexModel, DESCENDING
+from pydantic import BaseModel, SecretStr, EmailStr
+from reha.app.models import ObjectId, Field, Model
+from . import models
 
 
 def salter():
@@ -68,17 +70,20 @@ class Preferences(BaseModel):
     annotation: t.Optional[t.Dict] = None
 
 
-class User(BaseModel):
-    """A user object"""
-
-    id: ObjectId = Field(
-        alias="_id",
-        default_factory=ObjectId,
+@models.register(
+    'user',
+    indexes=(
+        IndexModel([("loginname", DESCENDING)], unique=True),
+        IndexModel([("email", DESCENDING)], unique=True),
     )
+)
+class User(Model):
+    """A user object"""
 
     loginname: str = Field(
         ...,
-        title="Anmeldename für Einladungsschreiben"
+        title="Anmeldename für Einladungsschreiben",
+        unique=True,
     )
 
     password: SecretStr = Field(
@@ -91,29 +96,24 @@ class User(BaseModel):
         title=""
     )
 
-    creation_date: t.Optional[datetime] = Field(
-        default_factory=datetime.now,
-        title="Erstelldatum"
-    )
-
     state: t.Optional[str] = Field(
         None,
         title="Status"
     )
 
     email: t.Optional[EmailStr] = Field(
-        "",
-        title="E-Mail"
+        None,
+        title="E-Mail",
+        unique=True
     )
 
     organization: t.Optional[str] = Field(
-        "",
+        None,
         title="Organization",
         description="Organization"
     )
 
     preferences: t.Optional[Preferences] = None
-    annotation: t.Optional[t.Dict] = None
 
     @property
     def title(self):

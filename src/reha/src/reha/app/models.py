@@ -1,7 +1,10 @@
 import logging
 import orjson
 import typing as t
-from pydantic import BaseModel
+from datetime import datetime
+from bson import ObjectId as BSONObjectId
+from pydantic import BaseModel, Field
+from pymongo import IndexModel
 
 
 logger = logging.getLogger(__name__)
@@ -10,6 +13,39 @@ JSONValue = t.Union[
     str, int, float, bool, None, t.Dict[str, t.Any], t.List[t.Any]]
 JSONType = t.Union[t.Dict[str, JSONValue], t.List[JSONValue]]
 
+
+class ObjectId(BSONObjectId):
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if not BSONObjectId.is_valid(v):
+            raise ValueError("Invalid objectid")
+        return BSONObjectId(v)
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema.update(type="string")
+
+
+class Model(BaseModel):
+
+    id: ObjectId = Field(default_factory=ObjectId, alias="_id")
+
+    creation_date: t.Optional[datetime] = Field(
+        default_factory=datetime.now,
+        title="Erstelldatum"
+    )
+
+    annotation: t.Optional[t.Dict] = None
+
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True  #required for the _id
+        json_encoders = {BSONObjectId: str}
 
 
 class JSONSchema(str):
@@ -26,9 +62,13 @@ class JSONSchema(str):
         return f'<JSONSchema {self.json!r}>'
 
 
+class ModelMetadata(t.NamedTuple):
+    indexes: t.Optional[t.Sequence[IndexModel]] = None
+
+
 class ModelInfo(t.NamedTuple):
     name: str
-    model: BaseModel
+    model: Model
     table: str
     schema: JSONSchema
     metadata: dict
@@ -59,7 +99,7 @@ class Models(t.Iterable[ModelInfo]):
 
     def add(self,
             name: str,
-            model: BaseModel,
+            model: Model,
             table: t.Optional[str] = None,
             **metadata) -> ModelInfo:
 
@@ -74,14 +114,14 @@ class Models(t.Iterable[ModelInfo]):
             model=model,
             table=table or name,
             schema=JSONSchema(model.schema_json()),
-            metadata=metadata
+            metadata=ModelMetadata(**metadata)
         )
         self._models[name] = info
         logger.info(f'Added new model {model!r} as {name!r}.')
         return info
 
     def register(self, name: str, **metadata):
-        def model_registration(model: BaseModel):
+        def model_registration(model: Model):
             self.add(name, model, **metadata)
             return model
         return model_registration

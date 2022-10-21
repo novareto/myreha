@@ -1,16 +1,23 @@
+import typing as t
+from dataclasses import dataclass, field
 from horseman.mapping import RootNode
-from knappe.pipeline import Pipeline
+from knappe.pipeline import Pipeline, Middleware
+from knappe.routing import Router
+from knappe.events import Subscribers
 from knappe.request import RoutingRequest as Request
 from pymongo import MongoClient
 from .models import Models
+from .database import DatabaseConnection
+from .lifecycle import RequestCreatedEvent
 
 
 @dataclass
 class Application(RootNode):
-    dbclient: MongoClient
+    dbconn: DatabaseConnection
     models: Models = field(default_factory=Models)
     router: Router = field(default_factory=Router)
     middlewares: t.Iterable[Middleware] = field(default_factory=tuple)
+    subscribers: Subscribers = field(default_factory=Subscribers)
 
     def __post_init__(self, middlewares=()):
         self.pipeline: Pipeline[Request, Response] = Pipeline(
@@ -19,11 +26,10 @@ class Application(RootNode):
 
     def resolve(self, path, environ):
         endpoint = self.router.match_method(path, environ['REQUEST_METHOD'])
-        return self.pipeline(endpoint.handler)(
-            Request(
-                environ,
-                app=self,
-                endpoint=endpoint,
-                context={"ui": ui}
-            )
+        request = Request(
+            environ,
+            app=self,
+            endpoint=endpoint
         )
+        self.subscribers.notify(RequestCreatedEvent(request))
+        return self.pipeline(endpoint.handler)(request)

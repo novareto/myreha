@@ -1,0 +1,49 @@
+<metal:block define-macro="listing">
+<div id="searchable" tal:condition="brains">
+  <h2 tal:content="listing_title" />
+  <table class="table"
+         data-locale='de-DE'
+         data-search="true"
+         data-toggle="table"
+         data-sort-name="date"
+         data-sort-order="desc"
+         data-filter-control="true"
+         data-filter-control-visible="true"
+         >
+    <thead>
+      <tr>
+        <th data-field="id" data-sortable="true">#</th>
+        <th data-field="title" data-sortable="true">Titel</th>
+        <th data-field="date"
+            data-sortable="true"
+            data-searchable="false">Datum</th>
+        <th data-field="org" data-searchable="false">Org</th>
+        <th data-field="state"
+            data-filter-control="select">Status</th>
+        <th data-field="actions" data-searchable="false">Aktionen</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tal:item tal:repeat="brain brains">
+      <tr>
+        <td tal:content="brain.id" />
+        <td tal:content="brain.title" />
+        <td tal:content="brain.date" />
+        <td tal:content="getattr(brain, 'organization', '')" />
+        <td data-state="${brain.state}">
+            ${brain.state}
+        </td>
+        <td>
+          <ul class="list-inline">
+            <li tal:repeat="action request.actions.iter(context=brain)"
+                class="list-inline-item">
+              <span tal:content="action"> </span>
+            </li>
+          </ul>
+        </td>
+      </tr>
+      </tal:item>
+    </tbody>
+  </table>
+</div>
+</metal:block>

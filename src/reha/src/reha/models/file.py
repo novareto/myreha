@@ -1,15 +1,16 @@
 import typing as t
 from datetime import datetime
-from pydantic import BaseModel, Field
-from . import ObjectId
+from pydantic import Field
+from pymongo import IndexModel, DESCENDING
+from reha.app.models import ObjectId, Model
+from . import models
 
 
-class File(BaseModel):
-
-    id: ObjectId = Field(
-        alias="_id",
-        default_factory=ObjectId,
-    )
+@models.register(
+    'file',
+    indexes=(IndexModel([("az", DESCENDING)], unique=True),)
+)
+class File(Model):
 
     user: ObjectId = Field(
         ...,
@@ -34,13 +35,6 @@ class File(BaseModel):
     state: t.Optional[str] = Field(
         default=None,
     )
-
-    creation_date: t.Optional[datetime] = Field(
-        default_factory=datetime.now,
-        title="Erstelldatum"
-    )
-
-    annotation: t.Optional[t.Dict] = None
 
     @property
     def title(self):

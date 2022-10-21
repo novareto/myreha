@@ -1,15 +1,10 @@
 import typing as t
-from datetime import datetime
-from pydantic import BaseModel, Field
-from . import ObjectId
+from reha.app.models import ObjectId, Field, Model
+from . import models
 
 
-class Document(BaseModel):
-
-    id: ObjectId = Field(
-        alias="_id",
-        default_factory=ObjectId,
-    )
+@models.register('document')
+class Document(Model):
 
     az: ObjectId = Field(
         ...,
@@ -25,14 +20,8 @@ class Document(BaseModel):
         default=None,
     )
 
-    creation_date: t.Optional[datetime] = Field(
-        default_factory=datetime.now,
-        title="Erstelldatum"
-    )
-
     content_type: t.Optional[str] = None
     item: t.Optional[t.Dict] = None
-    annotation: t.Optional[t.Dict] = None
 
     @property
     def title(self):
