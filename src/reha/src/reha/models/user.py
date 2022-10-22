@@ -4,7 +4,7 @@ import typing as t
 from datetime import date
 from pymongo import IndexModel, DESCENDING
 from pydantic import BaseModel, SecretStr, EmailStr
-from reha.app.models import ObjectId, Field, Model
+from reha.app.models import Field, Model
 from . import models
 
 

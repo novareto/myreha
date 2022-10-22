@@ -1,5 +1,4 @@
 import typing as t
-from datetime import datetime
 from pydantic import Field
 from pymongo import IndexModel, DESCENDING
 from reha.app.models import ObjectId, Model

@@ -28,8 +28,4 @@ class Document(Model):
         return f"{self.content_type}"
 
     def __repr__(self):
-        return f"Document({self.docid}, {self.content_type!r})"
-
-    def __post_init__(self):
-        if self.creation_date is None:
-            self.creation_date = datetime.now()
+        return f"Document({self.id}, {self.content_type!r})"

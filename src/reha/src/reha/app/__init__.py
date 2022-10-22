@@ -6,7 +6,7 @@ from knappe.routing import Router
 from knappe.events import Subscribers
 from knappe.actions import Actions, ContextualActions
 from knappe.request import RoutingRequest as Request
-from pymongo import MongoClient
+from knappe.response import Response
 from .models import Models
 from .database import DatabaseConnection
 from .lifecycle import RequestCreatedEvent

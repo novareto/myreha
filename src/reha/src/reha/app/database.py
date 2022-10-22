@@ -1,3 +1,4 @@
+import typing as t
 from pymongo import MongoClient
 from reha.app.models import ModelInfo
 
@@ -15,7 +16,7 @@ class DatabaseConnection:
     def get_table(self, name):
         return self.database[name]
 
-    def initialize(self, models):
+    def initialize(self, models: t.Iterable[ModelInfo]):
         db = self.client[self.dbname]
         for model in models:
             if model.metadata.indexes:

@@ -1,7 +1,5 @@
-import colander
 import deform
 from knappe.response import Response
-from knappe.decorators import html
 from knappe_deform import FormPage, trigger
 from jsonschema_colander import schema_fields
 from reha.models.user import User
