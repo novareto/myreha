@@ -34,12 +34,12 @@ def create_web_app(users_sources):
     )
 
     session = HTTPSession(
-        store=http_session_file.FileStore(pathlib.Path('./session'), 300),
+        store=http_session_file.FileStore(pathlib.Path('./session'), 3000),
         secret='secret',
         salt='salt',
         cookie_name='session',
         secure=False,
-        TTL=300
+        TTL=3000
     )
 
     app = Application(
@@ -79,6 +79,7 @@ def http(debug: bool = False):
     ])
     apply_blueprint(reha.browser.router, admin.router)
     apply_blueprint(backend.browser.router, admin.router)
+    apply_blueprint(backend.browser.actions, admin.actions)
     apply_blueprint(subscribers, admin.subscribers)
     apply_blueprint(models, admin.models)
     app.dbconn.initialize(admin.models)

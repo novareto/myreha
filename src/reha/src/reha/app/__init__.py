@@ -4,6 +4,7 @@ from horseman.mapping import RootNode
 from knappe.pipeline import Pipeline, Middleware
 from knappe.routing import Router
 from knappe.events import Subscribers
+from knappe.actions import Actions, ContextualActions
 from knappe.request import RoutingRequest as Request
 from pymongo import MongoClient
 from .models import Models
@@ -18,18 +19,26 @@ class Application(RootNode):
     router: Router = field(default_factory=Router)
     middlewares: t.Iterable[Middleware] = field(default_factory=tuple)
     subscribers: Subscribers = field(default_factory=Subscribers)
+    actions: Actions = field(default_factory=Actions)
 
     def __post_init__(self, middlewares=()):
         self.pipeline: Pipeline[Request, Response] = Pipeline(
             self.middlewares
         )
 
+    def route_url(self, name, **params) -> t.Optional[str]:
+        if self.router.has_route(name):
+            return self.router.url_for(name, **params)
+
     def resolve(self, path, environ):
         endpoint = self.router.match_method(path, environ['REQUEST_METHOD'])
         request = Request(
             environ,
             app=self,
-            endpoint=endpoint
+            endpoint=endpoint,
+        )
+        request.context['actions'] = ContextualActions(
+            request, self.actions
         )
         self.subscribers.notify(RequestCreatedEvent(request))
         return self.pipeline(endpoint.handler)(request)

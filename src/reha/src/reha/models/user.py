@@ -67,7 +67,6 @@ class Preferences(BaseModel):
     )
 
     webpush_subscription: t.Optional[str] = None
-    annotation: t.Optional[t.Dict] = None
 
 
 @models.register(
@@ -82,8 +81,7 @@ class User(Model):
 
     loginname: str = Field(
         ...,
-        title="Anmeldename für Einladungsschreiben",
-        unique=True,
+        title="Anmeldename für Einladungsschreiben"
     )
 
     password: SecretStr = Field(
@@ -103,14 +101,12 @@ class User(Model):
 
     email: t.Optional[EmailStr] = Field(
         None,
-        title="E-Mail",
-        unique=True
+        title="E-Mail"
     )
 
     organization: t.Optional[str] = Field(
         None,
-        title="Organization",
-        description="Organization"
+        title="Organization"
     )
 
     preferences: t.Optional[Preferences] = None

@@ -1,5 +1,5 @@
 <metal:block define-macro="listing">
-<div id="searchable" tal:condition="brains">
+<div id="searchable" tal:condition="items">
   <h2 tal:content="listing_title" />
   <table class="table"
          data-locale='de-DE'
@@ -24,18 +24,18 @@
       </tr>
     </thead>
     <tbody>
-      <tal:item tal:repeat="brain brains">
+      <tal:item tal:repeat="brain items">
       <tr>
         <td tal:content="brain.id" />
         <td tal:content="brain.title" />
-        <td tal:content="brain.date" />
+        <td tal:content="brain.creation_date" />
         <td tal:content="getattr(brain, 'organization', '')" />
         <td data-state="${brain.state}">
             ${brain.state}
         </td>
         <td>
           <ul class="list-inline">
-            <li tal:repeat="action request.actions.iter(context=brain)"
+            <li tal:repeat="action actions.iter(context=brain)"
                 class="list-inline-item">
               <span tal:content="action"> </span>
             </li>
