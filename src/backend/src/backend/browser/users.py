@@ -38,6 +38,18 @@ def view_user(request, item):
     )
 
 
+@actions.register(
+    User, "edit_user",
+    title="Edit",
+    classifiers=('listing',)
+)
+def edit_user(request, item):
+    return request.script_name + request.app.route_url(
+        "user.edit", objectid=item.id
+    )
+
+
+
 @router.register('/user.add', name="user.add")
 class AddUserForm(FormPage):
 
@@ -110,14 +122,10 @@ class EditUserForm(FormPage):
             jsonschema,
             config={
                 '': {
-                    #'exclude': {
-                    #    'annotation',
-                    #    'salt',
-                    #    'preferences',
-                    #}
-                    'include': {
-                        '_id',
-                        'email',
+                    'exclude': {
+                        'annotation',
+                        'salt',
+                        'preferences',
                     }
                 },
                 'email': {
@@ -156,16 +164,10 @@ class EditUserForm(FormPage):
     @trigger('edit', title="Edit", order=1)
     def edit(self, request):
         try:
-            import peppercorn
-
             modelinfo = self.get_modelinfo(request)
             data = self.get_initial_data(request, modelinfo)
-
-
             form = self.get_form(request, modelinfo, data=data)
-            pstruct = peppercorn.parse(request.data.form)
-            pstruct = data | pstruct
-            appstruct = form.validate_pstruct(pstruct)
+            appstruct = form.validate(request.data.form)
             password_manager = PasswordManager()
             collection = request.app.dbconn.database[user.table]
             result_id = collection.update_one({
@@ -174,9 +176,6 @@ class EditUserForm(FormPage):
             }).inserted_id
             return Response.redirect('/')
         except deform.exception.ValidationFailure as e:
-            import pdb
-            pdb.set_trace()
-
             return {
                 "error": None,
                 "rendered_form": e.render()
