@@ -49,7 +49,6 @@ def edit_user(request, item):
     )
 
 
-
 @router.register('/user.add', name="user.add")
 class AddUserForm(FormPage):
 
