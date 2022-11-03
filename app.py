@@ -15,36 +15,30 @@ def configure_logging(debug=False):
     )
 
 
-def create_web_app(users_sources):
+def create_web_app(user_sources):
     import pathlib
-    import http_session_file
+    from reha.app.auth import (
+        JWTAuthenticator, make_jwt_service, options_method_filter)
     from reha.app import Application
     from reha.app.database import DatabaseConnection
-    from knappe.auth import WSGISessionAuthenticator
     from knappe.middlewares import auth
-    from knappe.middlewares.session import HTTPSession
     from pymongo import MongoClient
 
+    jwt_service = make_jwt_service('my.key')
     authentication = auth.Authentication(
-        authenticator=WSGISessionAuthenticator(users_sources),
+        authenticator=JWTAuthenticator(
+            jwt_service,
+            sources=user_sources
+        ),
         filters=(
+            options_method_filter,
             auth.security_bypass({"/login"}),
-            auth.secured(path="/login")
         )
-    )
-
-    session = HTTPSession(
-        store=http_session_file.FileStore(pathlib.Path('./session'), 3000),
-        secret='secret',
-        salt='salt',
-        cookie_name='session',
-        secure=False,
-        TTL=3000
     )
 
     app = Application(
         DatabaseConnection(MongoClient()),
-        middlewares=(session, authentication)
+        middlewares=(authentication,)
     )
     return app
 
@@ -54,7 +48,6 @@ def http(debug: bool = False):
     import asyncio
     import pathlib
     from aiowsgi import create_server
-    import reha.browser
     import backend.browser
     from reha.ui import subscribers
     from reha.models import models
@@ -62,35 +55,18 @@ def http(debug: bool = False):
     from knappe.blueprint import apply_blueprint
     from knappe.testing import DictSource
 
-
     configure_logging(debug)
-
-
-    app = create_web_app([
-        DictSource({"user": "user"})
-    ])
-    apply_blueprint(reha.browser.router, app.router)
-    apply_blueprint(subscribers, app.subscribers)
-    apply_blueprint(models, app.models)
-    app.dbconn.initialize(app.models)
 
     admin = create_web_app([
         DictSource({"admin": "admin"})
     ])
-    apply_blueprint(reha.browser.router, admin.router)
     apply_blueprint(backend.browser.router, admin.router)
-    apply_blueprint(backend.browser.actions, admin.actions)
     apply_blueprint(subscribers, admin.subscribers)
     apply_blueprint(models, admin.models)
-    app.dbconn.initialize(admin.models)
-
-    root = Mapping({
-        "/": app,
-        "/admin": admin
-    })
+    admin.dbconn.initialize(admin.models)
 
     loop = asyncio.new_event_loop()
-    wsgi_server = create_server(root, loop=loop, port=8000)
+    wsgi_server = create_server(admin, loop=loop, port=8000)
 
     try:
         wsgi_server.run()
