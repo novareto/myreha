@@ -1,18 +1,28 @@
 import json
+import logging
 import typing as t
 from pathlib import Path
 from cromlech.jwt.components import TokenException, JWTHandler, JWTService
 from knappe.response import Response
 from jwcrypto import jwk
-from knappe.types import Handler, RqT
+from knappe.types import Handler, RqT, User
 from knappe.auth import Authenticator, Source, Credentials, User
 from knappe.request import WSGIRequest
+
+
+Logger = logging.getLogger(__name__)
 
 
 def options_method_filter(
         caller: Handler[WSGIRequest, Response], request: WSGIRequest):
     if request.method == 'OPTIONS':
         return caller(request)
+
+
+def authentified_only(
+        caller: Handler[WSGIRequest, Response], request: WSGIRequest):
+    if request.context.get('user') is None:
+        return Response(403)
 
 
 def get_key(path: Path):
@@ -25,13 +35,23 @@ def get_key(path: Path):
         with open(path, 'r', encoding="utf-8") as keyfile:
             data = json.loads(keyfile.read())
             key = jwk.JWK(**data)
-
     return key
 
 
 def make_jwt_service(key, TTL=600):
     key = get_key(Path(key))
     return JWTService(key, JWTHandler, lifetime=TTL)
+
+
+class APIUser(User):
+
+    def __init__(self, uid, name):
+        self.id = uid
+        self.name = name
+
+    @classmethod
+    def from_payload(cls, payload: dict):
+        return cls(payload['uid'], payload['user'])
 
 
 class JWTAuthenticator(
@@ -58,7 +78,11 @@ class JWTAuthenticator(
                     payload = self.service.check_token(token)
                 except (TokenException, ValueError) as err:
                     payload = None
-                return payload
+                    logging.warning(err, exc_info=True)
+                else:
+                    user = APIUser.from_payload(payload)
+                    request.context[self.context_key] = user
+                    return user
 
     def forget(self, request: WSGIRequest):
         pass

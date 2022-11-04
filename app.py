@@ -17,22 +17,22 @@ def configure_logging(debug=False):
 
 def create_web_app(user_sources):
     import pathlib
-    from reha.app.auth import (
-        JWTAuthenticator, make_jwt_service, options_method_filter)
-    from reha.app import Application
+    from reha.app import Application, auth as jwt
     from reha.app.database import DatabaseConnection
+    from roughrider.cors.policy import CORSPolicy
     from knappe.middlewares import auth
     from pymongo import MongoClient
 
-    jwt_service = make_jwt_service('my.key')
+    jwt_service = jwt.make_jwt_service('my.key')
     authentication = auth.Authentication(
-        authenticator=JWTAuthenticator(
+        authenticator=jwt.JWTAuthenticator(
             jwt_service,
             sources=user_sources
         ),
         filters=(
-            options_method_filter,
+            jwt.options_method_filter,
             auth.security_bypass({"/login"}),
+            jwt.authentified_only
         )
     )
 

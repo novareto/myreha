@@ -1,6 +1,6 @@
 from knappe.response import Response
 from knappe.meta import HTTPMethodEndpointMeta
-from reha.app.validation import json_validate
+from reha.app.validation import JSONModelValidator
 from pydantic import BaseModel
 from . import router
 
@@ -17,7 +17,7 @@ class Login(metaclass=HTTPMethodEndpointMeta):
         schema = User.schema_json(indent=2)
         return Response.from_json(200, schema)
 
-    @json_validate(User)
+    @JSONModelValidator(User)
     def POST(self, request, item=None):
         auth = request.context['authentication']
         user = auth.from_credentials(request, item.dict())
