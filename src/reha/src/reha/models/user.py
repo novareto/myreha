@@ -1,15 +1,46 @@
 import enum
 import secrets
+import hashlib
+import base64
 import typing as t
 from datetime import date
 from pymongo import IndexModel, DESCENDING
-from pydantic import BaseModel, SecretStr, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 from reha.app.models import Field, Model
 from . import models
 
 
-def salter():
-    return secrets.token_hex(8)
+def is_hash(pw: str) -> bool:
+    return pw.startswith('__hash__') and len(pw) == 200
+
+
+def hash_password(password: str) -> str:
+    salt = b'__hash__' + hashlib.sha256(
+        secrets.token_bytes(60)
+    ).hexdigest().encode('ascii')
+    pwdhash = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt,
+        27500,
+        dklen=64
+    )
+    return base64.b64encode(pwdhash).decode('utf-8')
+
+
+def verify_password(stored: str, challenger: str) -> bool:
+    """Verify a stored password against one provided by user"""
+    salt = stored[:72]
+    stored_password = stored[72:]
+    pwdhash = hashlib.pbkdf2_hmac(
+        'sha256',
+        challenger.encode('utf-8'),
+        salt.encode('ascii'),
+        27500,
+        dklen=64
+    )
+    pwdhash = base64.b64encode(pwdhash).decode('utf-8')
+    return pwdhash == stored
 
 
 class MessagingType(enum.Enum):
@@ -84,14 +115,9 @@ class User(Model):
         title="Anmeldename für Einladungsschreiben"
     )
 
-    password: SecretStr = Field(
+    password: str = Field(
         ...,
         title="Passwort"
-    )
-
-    salt: str = Field(
-        default_factory=salter,
-        title=""
     )
 
     state: t.Optional[str] = Field(
@@ -114,6 +140,12 @@ class User(Model):
     @property
     def title(self):
         return f"{self.id}, {self.email!r}"
+
+    @validator('password')
+    def hash_password(cls, pw: str) -> str:
+        if is_hash(pw):
+            return pw
+        return hash_password(pw)
 
     def __repr__(self):
         return f"User({self.id}, {self.email!r})"

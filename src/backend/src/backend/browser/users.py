@@ -1,3 +1,4 @@
+from pymongo.errors import DuplicateKeyError
 from knappe.response import Response
 from reha.app.validation import JSONModelValidator, JSONError
 from . import router
@@ -25,5 +26,11 @@ def create_user(request):
         user = validator.from_request(request)
     except JSONError as err:
         return err.to_response()
-    collection = request.app.dbconn.database[user.table]
-    return Response.from_json(200, body=user.json())
+
+    collection = request.app.dbconn.database[factory.table]
+    try:
+        dbid = collection.insert_one(user.dict()).inserted_id
+        user.id = dbid
+        return Response.from_json(200, body=user.json())
+    except DuplicateKeyError as err:
+        return Response.to_json(400, body=err.details)
